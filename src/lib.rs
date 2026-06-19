@@ -1,4 +1,4 @@
-use std::str::FromStr;
+
 use thiserror::Error;
 
 // Custom errors for Bitcoin operations
@@ -36,7 +36,7 @@ pub trait BitcoinSerialize {
 // Legacy Bitcoin transaction
 #[derive(Debug, Clone)]
 pub struct LegacyTransaction {
-    pub version: u32,
+    pub version: i32,
     pub inputs: Vec<TxInput>,
     pub outputs: Vec<TxOutput>,
     pub lock_time: u32,
@@ -51,7 +51,7 @@ impl LegacyTransaction {
 
 // Transaction builder
 pub struct LegacyTransactionBuilder {
-    pub version: u32,
+    pub version: i32,
     pub inputs: Vec<TxInput>,
     pub outputs: Vec<TxOutput>,
     pub lock_time: u32,
@@ -60,7 +60,12 @@ pub struct LegacyTransactionBuilder {
 impl Default for LegacyTransactionBuilder {
     fn default() -> Self {
         // TODO: Implement default values
-        Self { version: u32::default(), inputs: Vec::default(), outputs: Vec::default(), lock_time: u32::default() }
+        Self {
+            version: 1,
+            inputs: Vec::default(),
+            outputs: Vec::default(),
+            lock_time: 0,
+        }
     }
 }
 
@@ -70,7 +75,7 @@ impl LegacyTransactionBuilder {
         LegacyTransactionBuilder::default()
     }
 
-    pub fn version(mut self, version: u32) -> Self {
+    pub fn version(mut self, version: i32) -> Self {
         // TODO: Set the transaction version
         self.version = version;
         self
@@ -128,6 +133,21 @@ pub struct OutPoint {
 // Simple CLI argument parser
 pub fn parse_cli_args(args: &[String]) -> Result<CliCommand, BitcoinError> {
     // TODO: Match args to "send" or "balance" commands and parse required arguments
+    let args_0 = args[0].as_str();
+    match args_0 {
+        "send" => {
+            if args.len() < 3 {
+                return Err(BitcoinError::ParseError("Missing send args".to_string()));
+            }
+            let amount = args[1]
+                .parse::<u64>()
+                .map_err(|e| BitcoinError::ParseError(e.to_string()))?;
+            let address = args[2].clone();
+            Ok(CliCommand::Send { amount, address })
+        }
+        "balance" => Ok(CliCommand::Balance),
+        _ => Err(BitcoinError::ParseError("Unknown command".to_string())),
+    }
 }
 
 pub enum CliCommand {
@@ -142,6 +162,21 @@ impl TryFrom<&[u8]> for LegacyTransaction {
     fn try_from(data: &[u8]) -> Result<Self, Self::Error> {
         // TODO: Parse binary data into a LegacyTransaction
         // Minimum length is 10 bytes (4 version + 4 inputs count + 4 lock_time)
+        if data.len() < 16 {
+            return Err(BitcoinError::InvalidTransaction);
+        }
+
+        let version = i32::from_le_bytes(data[0..4].try_into().unwrap());
+        let input_count = u32::from_le_bytes(data[4..8].try_into().unwrap());
+        let output_count = u32::from_le_bytes(data[8..12].try_into().unwrap());
+        let lock_time = u32::from_le_bytes(data[12..16].try_into().unwrap());
+
+        Ok(LegacyTransaction {
+            version,
+            inputs: Vec::with_capacity(input_count as usize),
+            outputs: Vec::with_capacity(output_count as usize),
+            lock_time,
+        })
     }
 }
 
@@ -149,5 +184,9 @@ impl TryFrom<&[u8]> for LegacyTransaction {
 impl BitcoinSerialize for LegacyTransaction {
     fn serialize(&self) -> Vec<u8> {
         // TODO: Serialize only version and lock_time (simplified)
+        let mut serialize_buf = Vec::new();
+        serialize_buf.extend(&self.version.to_le_bytes());
+        serialize_buf.extend(&self.lock_time.to_le_bytes());
+        serialize_buf
     }
 }
