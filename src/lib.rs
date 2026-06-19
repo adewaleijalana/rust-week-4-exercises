@@ -1,4 +1,3 @@
-
 use thiserror::Error;
 
 // Custom errors for Bitcoin operations
