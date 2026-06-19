@@ -24,14 +24,13 @@ pub struct Point<T> {
 impl<T> Point<T> {
     pub fn new(x: T, y: T) -> Self {
         // TODO: Implement constructor for Point
+        Self { x, y }
     }
 }
 
 // Custom serialization for Bitcoin transaction
 pub trait BitcoinSerialize {
-    fn serialize(&self) -> Vec<u8> {
-        // TODO: Implement serialization to bytes
-    }
+    fn serialize(&self) -> Vec<u8>;
 }
 
 // Legacy Bitcoin transaction
@@ -46,12 +45,13 @@ pub struct LegacyTransaction {
 impl LegacyTransaction {
     pub fn builder() -> LegacyTransactionBuilder {
         // TODO: Return a new builder for constructing a transaction
+        LegacyTransactionBuilder::default()
     }
 }
 
 // Transaction builder
 pub struct LegacyTransactionBuilder {
-    pub version: i32,
+    pub version: u32,
     pub inputs: Vec<TxInput>,
     pub outputs: Vec<TxOutput>,
     pub lock_time: u32,
@@ -60,6 +60,7 @@ pub struct LegacyTransactionBuilder {
 impl Default for LegacyTransactionBuilder {
     fn default() -> Self {
         // TODO: Implement default values
+        Self { version: u32::default(), inputs: Vec::default(), outputs: Vec::default(), lock_time: u32::default() }
     }
 }
 
